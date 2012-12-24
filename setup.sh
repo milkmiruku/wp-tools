@@ -8,6 +8,7 @@
 # Get the absolute path of this executable
 ORIGDIR=$(pwd)
 SELF_PATH=$(cd -P -- "$(dirname -- "$0")" && pwd -P) && SELF_PATH=$SELF_PATH/$(basename -- "$0")
+WP_TOOLS_PATH=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
 # Resolve symlinks - this is the equivalent of "readlink -f", but also works with non-standard OS X readlink.
 while [ -h "$SELF_PATH" ]; do
@@ -21,8 +22,8 @@ while [ -h "$SELF_PATH" ]; do
 done
 cd "$ORIGDIR"
 echo "Working in $ORIGDIR"
-HTTPDOCS="$ORIGDIR/httpdocs"
-CNF="$ORIGDIR/cnf"
+HTTPDOCS="$ORIGDIR"
+CNF="$ORIGDIR"
 
 # http://sterlinghamilton.com/2010/12/23/unix-shell-adding-color-to-your-bash-script/
 # Example usage:
@@ -43,55 +44,54 @@ read -e PROJECT
 
 
 # CNF
-echo "Creating cnf directory..."
+#echo "Creating cnf directory..."
 
 
-if [ -d $CNF ] ; then
-	echo "Removing existing cnf directory...";
-	rm -rf $CNF;
-fi
-mkdir "$CNF"
-echo -e ${GreenF}"cnf dir created"${Reset}
+#if [ -d $CNF ] ; then
+#	echo "Removing existing cnf directory...";
+#	rm -rf $CNF;
+#fi
+#mkdir "$CNF"
+#echo -e ${GreenF}"cnf dir created"${Reset}
 
 # MySQL DB
-echo -e ${YellowF}"Creating MySQL DB"${Reset}
+echo -e ${YellowF}"Creating LOCAL MySQL DB"${Reset}
 
-echo -e ${YellowF}"Asking for database credentials..."${Reset}
 echo "Database Name: "
-read -e DBNAME
+read -e LOCAL_DB_NAME
 echo "Database User: "
-read -e DBUSER
+read -e LOCAL_DB_USER
 echo "Database Password: "
-read -s DBPASS
+read -s LOCAL_DB_PASS
 
-Q1="CREATE DATABASE IF NOT EXISTS $DBNAME;"
-Q2="GRANT ALL ON *.* TO '$DBUSER'@'localhost' IDENTIFIED BY '$DBPASS';"
+Q1="CREATE DATABASE IF NOT EXISTS $LOCAL_DB_NAME;"
+Q2="GRANT ALL ON *.* TO '$LOCAL_DB_USER'@'localhost' IDENTIFIED BY '$LOCAL_DB_PASS';"
 Q3="FLUSH PRIVILEGES;"
 SQL="${Q1}${Q2}${Q3}"
 
 echo -e ${YellowF}"Running SQL statement"${Reset}
 
 MYSQL=`which mysql`
-$MYSQL -uroot -p$DBPASS -e "$SQL"
+$MYSQL -uroot -p$LOCAL_DB_PASS -e "$SQL"
 
-echo -e ${GreenF}"$DBNAME DB created"${Reset}
+echo -e ${GreenF}"$LOCAL_DB_NAME DB created"${Reset}
 
 # Settings.php && wp-config.php
 #Dont need wp core config, use or own wp-config from a gist ? –quiet ?
 
 ## Write vhost.conf
 
-echo -e ${YellowF}"Editing http.conf..."${Reset}
-cd $CNF
-wget -P $CNF https://gist.github.com/raw/4012197/892032910d3742b11014176d53cd966cea228e23/httpd.conf
-sed -i 's/%PROJECT%/'$PROJECT'/g' ./httpd.conf
-sed -i 's/%DOCROOT%/'$HTTPDOCS'/g' ./httpd.conf
-echo -e ${GreenF}"http.conf edited"${Reset}
+#echo -e ${YellowF}"Editing http.conf..."${Reset}
+#cd $CNF
+#wget -P $CNF https://gist.github.com/raw/4012197/892032910d3742b11014176d53cd966cea228e23/httpd.conf
+#sed -i 's/%PROJECT%/'$PROJECT'/g' ./httpd.conf
+#sed -i 's/%DOCROOT%/'$HTTPDOCS'/g' ./httpd.conf
+#echo -e ${GreenF}"http.conf edited"${Reset}
 
 # HTTPDOCS
-echo -e ${YellowF}"Creating httpdocs..."${Reset}
-mkdir $HTTPDOCS
-echo -e ${GreenF}"httpdocs created"${Reset}
+#echo -e ${YellowF}"Creating httpdocs..."${Reset}
+#mkdir $HTTPDOCS
+#echo -e ${GreenF}"httpdocs created"${Reset}
 
 ## Get WordPress
 echo -e ${YellowF}"Running wp core download in httpdocs..."${Reset}
@@ -100,22 +100,43 @@ wp core download
 echo -e ${GreenF}"WordPress Core downloaded"${Reset}
 
 echo -e ${YellowF}"Getting settings.php..."${Reset}
-wget -P "$CNF" https://gist.github.com/raw/4009181/4dfcbf074ccc4b5f0b1c8bea1c04de2789a9ae76/settings.php
+#wget -P "$CNF" https://gist.github.com/raw/4009181/4dfcbf074ccc4b5f0b1c8bea1c04de2789a9ae76/settings.php
+cp $WP_TOOLS_PATH'/skeleton/local-config.php' $CNF'/local-config.php'
 
-echo -e ${YellowF}"Editing settings.php..."${Reset}
+echo -e ${YellowF}"Editing local-config.php..."${Reset}
 cd $CNF
-sed -i 's/%DBNAME%/'$DBNAME'/g' ./settings.php
-sed -i 's/%DBUSER%/'$DBUSER'/g' ./settings.php
-sed -i 's/%DBPASS%/'$DBPASS'/g' ./settings.php
+sed -i.bak 's/putyourdbnamehere/'$LOCAL_DB_NAME'/g' ./local-config.php
+sed -i.bak 's/usernamehere/'$LOCAL_DB_USER'/g' ./local-config.php
+sed -i.bak 's/yourpasswordhere/'$LOCAL_DB_PASS'/g' ./local-config.php
 echo -e ${GreenF}"settings edited"${Reset}
 
-#ToDo load settings in wp-config.php meanwhile use default wp-config.php
 echo -e ${YellowF}"Editing wp-config.php..."${Reset}
+cp $WP_TOOLS_PATH'/skeleton/wp-config.php' $HTTPDOCS'/wp-config.php'
 cd $HTTPDOCS
-mv wp-config-sample.php wp-config.php 
-sed -i 's/database_name_here/'$DBNAME'/g' ./wp-config.php
-sed -i 's/username_here/'$DBUSER'/g' ./wp-config.php
-sed -i 's/password_here/'$DBPASS'/g' ./wp-config.php
+rm wp-config-sample.php
+
+echo -e ${YellowF}"Do you have the live DB credentials? (y/n):"${Reset}
+read -e PRODUCTION_DB_SETUP
+
+if [ "$PRODUCTION_DB_SETUP" == "y" ] ; then
+	echo "Database Name: "
+	read -e DB_NAME
+	echo "Database User: "
+	read -e DB_USER
+	echo "Database Password: "
+	read -s DB_PASS
+
+	sed -i.bak 's/putyourdbnamehere/'$DB_NAME'/g' ./wp-config.php
+	sed -i.bak 's/usernamehere/'$DB_USER'/g' ./wp-config.php
+	sed -i.bak 's/yourpasswordhere/'$DB_PASS'/g' ./wp-config.php
+fi
+
+# cleanup, remove any file backup files created.
+rm -r *.bak
+
+#TODO: Autogenerate SALTS?
+#SECRET_KEYS="wget https://api.wordpress.org/secret-key/1.1/salt"
+#sed -i.bak 's/WPT_SECRET_KEYS/'$SECRET_KEYS'/g' ./wp-config.php
 echo -e ${YellowF}"wp-config.php written"${Reset}
 
 
@@ -138,13 +159,6 @@ if [ "$SITERUN" != "y" ] ; then
   exit
 fi
 
-sed -i 's/%SITEURL%/'$SITEURL'/g' "$CNF/settings.php"
-
-echo "wp core install..."
-cd "$HTTPDOCS"
-wp core install --url=$SITEURL --title=$SITETITLE --admin_email=$SITEMAIL --admin_password=$SITEPASS
-echo -e ${GreenF}"wp core installed"${Reset}
-
 
 ## Install theme
 #cd wp-content/themes && wget https://github.com/eddiemachado/bones/zipball/master && unzip master && mv eddie* $PROJECT && rm master && cd /var/www/$PROJECT
@@ -163,13 +177,13 @@ echo -e ${GreenF}"wp core installed"${Reset}
 
 ## Install plugins
 
-#wp plugin install backwpup 
+#wp plugin install backwpup
 #wp plugin install google-analytics-for-wordpress
 #wp plugin install w3-total-cache
 #wp plugin install all-in-one-seo-pack
 #wp plugin install rewrite-rules-inspector
 
-wp plugin delete hello-dolly
+wp plugin delete hello
 
 # Server user and group
 #chown www-data * -R
