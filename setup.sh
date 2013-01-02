@@ -148,6 +148,8 @@ echo "Url: "
 read -e SITEURL #could use "$PROJECT.local"
 echo "Title: "
 read -e SITETITLE
+echo "Admin Username: "
+read -e SITEADMIN
 echo "E-mail: "
 read -e SITEMAIL
 echo "Site Password: "
@@ -159,6 +161,7 @@ if [ "$SITERUN" != "y" ] ; then
   exit
 fi
 
+wp core install --url=$SITEURL --title=$SITETITLE --admin_name=$SITEADMIN --admin_email=$SITEMAIL --admin_password=$SITEPASS
 
 ## Install theme
 #cd wp-content/themes && wget https://github.com/eddiemachado/bones/zipball/master && unzip master && mv eddie* $PROJECT && rm master && cd /var/www/$PROJECT
@@ -177,11 +180,12 @@ fi
 
 ## Install plugins
 
-#wp plugin install backwpup
-#wp plugin install google-analytics-for-wordpress
+wp plugin install backwpup
+wp plugin install developer
+wp plugin install google-analytics-for-wordpress
 #wp plugin install w3-total-cache
 #wp plugin install all-in-one-seo-pack
-#wp plugin install rewrite-rules-inspector
+wp plugin install rewrite-rules-inspector
 
 wp plugin delete hello
 
