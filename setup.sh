@@ -22,8 +22,6 @@ while [ -h "$SELF_PATH" ]; do
 done
 cd "$ORIGDIR"
 echo "Working in $ORIGDIR"
-HTTPDOCS="$ORIGDIR"
-CNF="$ORIGDIR"
 
 # http://sterlinghamilton.com/2010/12/23/unix-shell-adding-color-to-your-bash-script/
 # Example usage:
@@ -37,13 +35,39 @@ Colors() {
 Colors;
 
 # PROJECT init
-echo -e ${YellowF}"Project name (lowercase):"${Reset}
+echo -e ${YellowF}"Project slug (lowercase, no spaces):"${Reset}
 read -e PROJECT
-#cd /var/www
-#mkdir $PROJECT && cd $_
 
+# Create Project REPO
+
+echo -e ${YellowF}"Create Project Repo? Bitbucket (y/n):"${Reset}
+read -e SETUP_REPO
+
+if [ "$SETUP_REPO" == "y" ] ; then
+	echo "BitBucket Account (Either your account or a team account you have access to): "
+	read -e BB_ACCOUNT
+	echo "Username: "
+	read -e BB_USER
+	echo "Password: "
+	read -s BB_PASS
+
+	curl -u$BB_USER:$BB_PASS -X POST -d "name=$PROJECT" -d 'is_private=1' -d 'scm=git' https://api.bitbucket.org/1.0/repositories/
+
+	git clone https://$BB_USER:$BB_PASS@bitbucket.org/$BB_ACCOUNT/$PROJECT.git
+
+	HTTPDOCS="$ORIGDIR/$PROJECT"
+	CNF="$ORIGDIR/$PROJECT"
+fi
+
+if [ "$SETUP_REPO" != "y" ] ; then
+	mkdir $PROJECT
+	HTTPDOCS="$ORIGDIR/$PROJECT"
+fi
+
+cd $HTTPDOCS
 
 # CNF
+# TODO: Recreate cases where we don't create the repo
 #echo "Creating cnf directory..."
 
 
@@ -87,11 +111,6 @@ echo -e ${GreenF}"$LOCAL_DB_NAME DB created"${Reset}
 #sed -i 's/%PROJECT%/'$PROJECT'/g' ./httpd.conf
 #sed -i 's/%DOCROOT%/'$HTTPDOCS'/g' ./httpd.conf
 #echo -e ${GreenF}"http.conf edited"${Reset}
-
-# HTTPDOCS
-#echo -e ${YellowF}"Creating httpdocs..."${Reset}
-#mkdir $HTTPDOCS
-#echo -e ${GreenF}"httpdocs created"${Reset}
 
 ## Get WordPress
 echo -e ${YellowF}"Running wp core download in httpdocs..."${Reset}
@@ -148,6 +167,8 @@ echo "Url: "
 read -e SITEURL #could use "$PROJECT.local"
 echo "Title: "
 read -e SITETITLE
+echo "Admin Name: "
+read -e SITEADMIN_NAME
 echo "Admin Username: "
 read -e SITEADMIN
 echo "E-mail: "
@@ -163,9 +184,41 @@ fi
 
 wp core install --url=$SITEURL --title=$SITETITLE --admin_name=$SITEADMIN --admin_email=$SITEMAIL --admin_password=$SITEPASS
 
+wp rewrite structure %category%/%postname%
+
+## Install plugins
+
+wp plugin install backwpup
+wp plugin install developer
+wp plugin install google-analytics-for-wordpress
+wp plugin install advanced-custom-fields
+#wp plugin install w3-total-cache
+#wp plugin install all-in-one-seo-pack
+wp plugin install rewrite-rules-inspector
+
+wp plugin delete hello
+
+echo "Install _s theme? (y/n)"
+read -e THEME_INSTALL
+
+if [ "$THEME_INSTALL" != "y" ] ; then
+  exit
+fi
+
+echo "Admin Website: "
+read -e SITEADMIN_URI
+echo "Theme Description: "
+read -e THEME_DESCRIPTION
+
+echo ${YellowF}"Installing _S Theme with project information..."
+
 ## Install theme
-#cd wp-content/themes && wget https://github.com/eddiemachado/bones/zipball/master && unzip master && mv eddie* $PROJECT && rm master && cd /var/www/$PROJECT
-#wp theme activate bones
+cd wp-content/themes
+curl -d underscoresme_name="$SITETITLE" -d underscoresme_slug="$PROJECT" -d underscoresme_author="$SITEADMIN_NAME" -d underscoresme_author_uri="$SITEADMIN_URI" -d underscoresme_description="$THEME_DESCRIPTION" -d underscoresme_generate_submit="Generate" -d underscoresme_generate="1" http://underscores.me > underscores.zip
+unzip underscores && rm underscores.zip
+cd "$HTTPDOCS"
+
+wp theme activate $PROJECT
 
 ### Sass support
 
@@ -177,17 +230,6 @@ wp core install --url=$SITEURL --title=$SITETITLE --admin_name=$SITEADMIN --admi
 #cd wp-content/themes/bones/library/scss
 #wget https://raw.github.com/twigkit/semantic.gs/master/stylesheets/scss/grid.scss -O _grid.scss
 #cd "$ORIGDIR/httpdocs"
-
-## Install plugins
-
-wp plugin install backwpup
-wp plugin install developer
-wp plugin install google-analytics-for-wordpress
-#wp plugin install w3-total-cache
-#wp plugin install all-in-one-seo-pack
-wp plugin install rewrite-rules-inspector
-
-wp plugin delete hello
 
 # Server user and group
 #chown www-data * -R
