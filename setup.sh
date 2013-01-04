@@ -10,6 +10,7 @@ ORIGDIR=$(pwd)
 SELF_PATH=$(cd -P -- "$(dirname -- "$0")" && pwd -P) && SELF_PATH=$SELF_PATH/$(basename -- "$0")
 WP_TOOLS_PATH=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 
+
 # Resolve symlinks - this is the equivalent of "readlink -f", but also works with non-standard OS X readlink.
 while [ -h "$SELF_PATH" ]; do
 	# 1) cd to directory of the symlink
@@ -57,6 +58,7 @@ if [ "$SETUP_REPO" == "y" ] ; then
 
 	HTTPDOCS="$ORIGDIR/$PROJECT"
 	CNF="$ORIGDIR/$PROJECT"
+	GIT_PATH="$HTTPDOCS/.git/hooks"
 fi
 
 if [ "$SETUP_REPO" != "y" ] ; then
@@ -65,6 +67,8 @@ if [ "$SETUP_REPO" != "y" ] ; then
 fi
 
 cd $HTTPDOCS
+
+
 
 # CNF
 # TODO: Recreate cases where we don't create the repo
@@ -100,17 +104,22 @@ $MYSQL -uroot -p$LOCAL_DB_PASS -e "$SQL"
 
 echo -e ${GreenF}"$LOCAL_DB_NAME DB created"${Reset}
 
-# Settings.php && wp-config.php
-#Dont need wp core config, use or own wp-config from a gist ? –quiet ?
+if [ "$SETUP_REPO" == "y" ] ; then
+	echo -e ${YellowF}"Adding git hooks for DB VCS"${Reset}
+	cp $WP_TOOLS_PATH'/skeleton/pre-commit' $GIT_PATH'/pre-commit'
+	sed -i.bak 's/dbuser/'$LOCAL_DB_USER'/g' $GIT_PATH/pre-commit
+	sed -i.bak 's/dbpassword/'$LOCAL_DB_PASS'/g' $GIT_PATH/pre-commit
+	sed -i.bak 's/dbname/'$PROJECT'/g' $GIT_PATH/pre-commit
+	sed -i.bak 's|projectpath|'$HTTPDOCS'|g' $GIT_PATH/pre-commit
+	chmod +x $GIT_PATH/pre-commit
 
-## Write vhost.conf
-
-#echo -e ${YellowF}"Editing http.conf..."${Reset}
-#cd $CNF
-#wget -P $CNF https://gist.github.com/raw/4012197/892032910d3742b11014176d53cd966cea228e23/httpd.conf
-#sed -i 's/%PROJECT%/'$PROJECT'/g' ./httpd.conf
-#sed -i 's/%DOCROOT%/'$HTTPDOCS'/g' ./httpd.conf
-#echo -e ${GreenF}"http.conf edited"${Reset}
+	cp $WP_TOOLS_PATH'/skeleton/post-merge' $GIT_PATH'/post-merge'
+	sed -i.bak 's/dbuser/'$LOCAL_DB_USER'/g' $GIT_PATH/post-merge
+	sed -i.bak 's/dbpassword/'$LOCAL_DB_PASS'/g' $GIT_PATH/post-merge
+	sed -i.bak 's/dbname/'$PROJECT'/g' $GIT_PATH/post-merge
+	sed -i.bak 's|projectpath|'$HTTPDOCS'|g' $GIT_PATH/post-merge
+	chmod +x $GIT_PATH/post-merge
+fi
 
 ## Get WordPress
 echo -e ${YellowF}"Running wp core download in httpdocs..."${Reset}

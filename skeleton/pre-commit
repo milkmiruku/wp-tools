@@ -1,0 +1,4 @@
+#!/bin/sh
+mysqldump -u dbuser -pdbpassword --skip-extended-insert dbname > projectpath/dbname.sql
+cd projectpath
+git add dbname.sql

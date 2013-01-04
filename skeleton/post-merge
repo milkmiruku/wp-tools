@@ -1,0 +1,2 @@
+#!/bin/sh
+mysql -u dbuser -pdbpassword dbname < projectpath/dbname.sql
