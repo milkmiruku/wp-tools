@@ -129,13 +129,13 @@ echo -e ${GreenF}"WordPress Core downloaded"${Reset}
 
 echo -e ${YellowF}"Getting settings.php..."${Reset}
 #wget -P "$CNF" https://gist.github.com/raw/4009181/4dfcbf074ccc4b5f0b1c8bea1c04de2789a9ae76/settings.php
-cp $WP_TOOLS_PATH'/skeleton/local-config.php' $CNF'/local-config.php'
+cp $WP_TOOLS_PATH'/skeleton/local-config.php' $HTTPDOCS'/local-config.php'
 
 echo -e ${YellowF}"Editing local-config.php..."${Reset}
-cd $CNF
-sed -i.bak 's/putyourdbnamehere/'$LOCAL_DB_NAME'/g' ./local-config.php
-sed -i.bak 's/usernamehere/'$LOCAL_DB_USER'/g' ./local-config.php
-sed -i.bak 's/yourpasswordhere/'$LOCAL_DB_PASS'/g' ./local-config.php
+cd $HTTPDOCS
+sed -i.bak 's/putyourdbnamehere/'$LOCAL_DB_NAME'/g' $HTTPDOCS/local-config.php
+sed -i.bak 's/usernamehere/'$LOCAL_DB_USER'/g' $HTTPDOCS/local-config.php
+sed -i.bak 's/yourpasswordhere/'$LOCAL_DB_PASS'/g' $HTTPDOCS/local-config.php
 echo -e ${GreenF}"settings edited"${Reset}
 
 echo -e ${YellowF}"Editing wp-config.php..."${Reset}
@@ -206,6 +206,8 @@ wp plugin install advanced-custom-fields
 wp plugin install rewrite-rules-inspector
 
 wp plugin delete hello
+
+wp plugin update-all
 
 echo "Install _s theme? (y/n)"
 read -e THEME_INSTALL
