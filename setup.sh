@@ -38,6 +38,7 @@ Colors;
 # PROJECT init
 echo -e ${YellowF}"Project slug (lowercase, no spaces):"${Reset}
 read -e PROJECT
+CLEAN_PROJECT=${PROJECT//[^a-zA-Z0-9]/}
 
 # Create Project REPO
 
@@ -45,16 +46,18 @@ echo -e ${YellowF}"Create Project Repo? Bitbucket (y/n):"${Reset}
 read -e SETUP_REPO
 
 if [ "$SETUP_REPO" == "y" ] ; then
-	echo "BitBucket Account (Either your account or a team account you have access to): "
-	read -e BB_ACCOUNT
+	echo "Owner (Leave blank if not team): "
+	read -e BB_Owner
 	echo "Username: "
 	read -e BB_USER
 	echo "Password: "
 	read -s BB_PASS
 
-	curl -u$BB_USER:$BB_PASS -X POST -d "name=$PROJECT" -d 'is_private=1' -d 'scm=git' https://api.bitbucket.org/1.0/repositories/
+echo "-u$BB_USER:$BB_PASS -X POST -d 'name=$PROJECT' -d 'owner=$BB_Owner' -d 'is_private=1' -d 'scm=git' https://api.bitbucket.org/1.0/repositories/"
 
-	git clone https://$BB_USER:$BB_PASS@bitbucket.org/$BB_ACCOUNT/$PROJECT.git
+	curl -u$BB_USER:$BB_PASS -X POST -d "name=$PROJECT" -d "owner=$BB_Owner" -d 'is_private=1' -d 'scm=git' https://api.bitbucket.org/1.0/repositories/
+
+	git clone https://$BB_USER:$BB_PASS@bitbucket.org/$BB_Owner/$PROJECT.git
 
 	HTTPDOCS="$ORIGDIR/$PROJECT"
 	CNF="$ORIGDIR/$PROJECT"
@@ -85,8 +88,11 @@ cd $HTTPDOCS
 # MySQL DB
 echo -e ${YellowF}"Creating LOCAL MySQL DB"${Reset}
 
-echo "Database Name: "
-read -e LOCAL_DB_NAME
+echo "Database Name: [$CLEAN_PROJECT]"
+	read -e LOCAL_DB_NAME
+	if [ -z "$LOCAL_DB_NAME"] ; then
+		LOCAL_DB_NAME=$CLEAN_PROJECT
+	fi
 echo "Database User: "
 read -e LOCAL_DB_USER
 echo "Database Password: "
@@ -172,8 +178,11 @@ echo -e ${YellowF}"wp-config.php written"${Reset}
 # Install site
 echo -e ${YellowF}"Installing WordPress..."${Reset}
 
-echo "Url: "
-read -e SITEURL #could use "$PROJECT.local"
+echo "URL [http://127.0.0.1/$PROJECT]: "
+read -e SITEURL
+	if [ -z "$SITEURL"] ; then
+		SITEURL="http://127.0.0.1/$PROJECT"
+	fi
 echo "Title: "
 read -e SITETITLE
 echo "Admin Name: "
