@@ -115,14 +115,14 @@ if [ "$SETUP_REPO" == "y" ] ; then
 	cp $WP_TOOLS_PATH'/skeleton/pre-commit' $GIT_PATH'/pre-commit'
 	sed -i.bak 's/dbuser/'$LOCAL_DB_USER'/g' $GIT_PATH/pre-commit
 	sed -i.bak 's/dbpassword/'$LOCAL_DB_PASS'/g' $GIT_PATH/pre-commit
-	sed -i.bak 's/dbname/'$PROJECT'/g' $GIT_PATH/pre-commit
+	sed -i.bak 's/dbname/'$LOCAL_DB_NAME'/g' $GIT_PATH/pre-commit
 	sed -i.bak 's|projectpath|'$HTTPDOCS'|g' $GIT_PATH/pre-commit
 	chmod +x $GIT_PATH/pre-commit
 
 	cp $WP_TOOLS_PATH'/skeleton/post-merge' $GIT_PATH'/post-merge'
 	sed -i.bak 's/dbuser/'$LOCAL_DB_USER'/g' $GIT_PATH/post-merge
 	sed -i.bak 's/dbpassword/'$LOCAL_DB_PASS'/g' $GIT_PATH/post-merge
-	sed -i.bak 's/dbname/'$PROJECT'/g' $GIT_PATH/post-merge
+	sed -i.bak 's/dbname/'$LOCAL_DB_NAME'/g' $GIT_PATH/post-merge
 	sed -i.bak 's|projectpath|'$HTTPDOCS'|g' $GIT_PATH/post-merge
 	chmod +x $GIT_PATH/post-merge
 fi
