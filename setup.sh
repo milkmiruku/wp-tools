@@ -93,20 +93,22 @@ echo "Database Name: [$CLEAN_PROJECT]"
 	if [ -z "$LOCAL_DB_NAME"] ; then
 		LOCAL_DB_NAME=$CLEAN_PROJECT
 	fi
-echo "Database User: "
+echo "WP Database User: "
 read -e LOCAL_DB_USER
-echo "Database Password: "
+echo "WP Database Password: "
 read -s LOCAL_DB_PASS
+echo "Database Access Password: "
+read -s ACCESS_DB_PASS
 
 Q1="CREATE DATABASE IF NOT EXISTS $LOCAL_DB_NAME;"
-Q2="GRANT ALL ON *.* TO '$LOCAL_DB_USER'@'localhost' IDENTIFIED BY '$LOCAL_DB_PASS';"
+Q2="GRANT ALL ON '$LOCAL_DB_NAME'.* TO '$LOCAL_DB_USER'@'localhost' IDENTIFIED BY '$LOCAL_DB_PASS';"
 Q3="FLUSH PRIVILEGES;"
 SQL="${Q1}${Q2}${Q3}"
 
 echo -e ${YellowF}"Running SQL statement"${Reset}
 
 MYSQL=`which mysql`
-$MYSQL -uroot -p$LOCAL_DB_PASS -e "$SQL"
+$MYSQL -uroot -p$ACCESS_DB_PASS -e "$SQL"
 
 echo -e ${GreenF}"$LOCAL_DB_NAME DB created"${Reset}
 
